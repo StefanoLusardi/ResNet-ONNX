@@ -3,6 +3,6 @@
 **/build
 **/install
 **/__pycache__
-**/resnet18-v1-7.onnx
+**/resnet18-v2-7.onnx
 **/squeezenet1.1-7.onnx
 **/compile_commands.json

@@ -1,13 +1,11 @@
-
+#define STB_IMAGE_IMPLEMENTATION
 #include "post_processing.hpp"
 #include "pre_processing.hpp"
-#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 #include <filesystem>
-#include <fstream>
 #include <iostream>
+#include <onnxruntime/core/session/onnxruntime_cxx_api.h>
+#include <stb_image.h>
 #include <string>
 #include <vector>
 
@@ -49,23 +47,12 @@ std::string print_shape(const std::vector<std::int64_t>& v)
     return ss.str();
 }
 
-std::vector<std::string> read_labels(const std::string& labels_path)
-{
-    std::vector<std::string> labels;
-    std::string line;
-    std::ifstream fp(labels_path);
-    while (std::getline(fp, line))
-    {
-        labels.push_back(line);
-    }
-    return labels;
-}
-
 int main()
 {
-    const std::basic_string<ORTCHAR_T> model_path = "squeezenet1.1-7.onnx";
-    // const std::basic_string<ORTCHAR_T> model_path = "resnet18-v1-7.onnx";
-    const std::filesystem::path image_path = "images/dog.png";
+    const std::basic_string<ORTCHAR_T> model_path = "resnet18-v2-7.onnx";
+    // const std::basic_string<ORTCHAR_T> model_path = "squeezenet1.1-7.onnx";
+
+    const std::filesystem::path image_path = "images/dog.jpeg";
 
     std::cout
         << "\nModel: " << model_path
@@ -84,10 +71,10 @@ int main()
         img.channels,
         target_width,
         target_height,
-        1.0 / 255.0,
+        1.0f / 255.0f,
         std::vector<float>{0.485f, 0.456f, 0.406f},
         std::vector<float>{0.229f, 0.224f, 0.225f},
-        true);
+        false);
 
     Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "ResNet");
     Ort::AllocatorWithDefaultOptions allocator;
@@ -104,7 +91,9 @@ int main()
         auto input_name = session.GetInputNameAllocated(i, allocator);
         auto input_shape = session.GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetShape();
         auto input_type = session.GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetElementType();
-        auto input_count = session.GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetElementCount();
+
+        // Not supported by ResNet
+        // auto input_count = session.GetInputTypeInfo(i).GetTensorTypeAndShapeInfo().GetElementCount();
 
         for (auto& s : input_shape)
         {
@@ -119,7 +108,7 @@ int main()
             << "\n - name: " << input_name
             << "\n - shape: " << print_shape(input_shape)
             << "\n - element type: " << input_type
-            << "\n - element count: " << input_count
+            // << "\n - element count: " << input_count
             << std::endl;
     }
 
@@ -137,7 +126,9 @@ int main()
         auto output_name = session.GetOutputNameAllocated(i, allocator);
         auto output_shape = session.GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo().GetShape();
         auto output_type = session.GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo().GetElementType();
-        auto output_count = session.GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo().GetElementCount();
+
+        // Not supported by ResNet
+        // auto output_count = session.GetOutputTypeInfo(i).GetTensorTypeAndShapeInfo().GetElementCount();
 
         for (auto& s : output_shape)
         {
@@ -152,7 +143,7 @@ int main()
             << "\n - name: " << output_name
             << "\n - shape: " << print_shape(output_shape)
             << "\n - element type: " << output_type
-            << "\n - element count: " << output_count
+            // << "\n - element count: " << output_count
             << std::endl;
     }
 
@@ -184,31 +175,13 @@ int main()
 
     // Postprocess output
     float* outputs_raw = output_tensors.front().GetTensorMutableData<float>();
-    std::vector<int64_t> output_shape = session.GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
+    auto [id, label, confidence] = postprocess(outputs_raw);
 
     // Print results
-    int pred_id;
-    float activation = 0;
-    float maxActivation = std::numeric_limits<float>::lowest();
-    float expSum = 0;
-    auto labels = read_labels("labels.txt");
-    for (int i = 0; i < labels.size(); i++)
-    {
-        activation = outputs_raw[i];
-        expSum += std::exp(activation);
-        if (activation > maxActivation)
-        {
-            pred_id = i;
-            maxActivation = activation;
-        }
-    }
-
-    std::string pred_label = labels.at(pred_id);
-    float confidence = std::exp(maxActivation) / expSum;
-
-    std::cout << "\nPredicted Label ID: " << pred_id << std::endl;
-    std::cout << "Predicted Label: " << pred_label << std::endl;
-    std::cout << "Uncalibrated Confidence: " << confidence << std::endl;
+    std::cout << "\nPrediction results:" << std::endl;
+    std::cout << "Label ID: " << id << std::endl;
+    std::cout << "Label: " << label << std::endl;
+    std::cout << "Confidence: " << confidence << std::endl;
 
     return EXIT_SUCCESS;
 }

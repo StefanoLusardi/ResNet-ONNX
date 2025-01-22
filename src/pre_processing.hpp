@@ -4,6 +4,37 @@
 #include <cstdint>
 #include <vector>
 
+std::vector<uint8_t> resize_image(
+    const std::vector<std::uint8_t>& image,
+    int image_width,
+    int image_height,
+    int image_channels,
+    int target_width,
+    int target_height)
+{
+    std::vector<uint8_t> resized_image(target_width * target_height * image_channels);
+
+    double scale_x = static_cast<double>(image_width) / target_width;
+    double scale_y = static_cast<double>(image_height) / target_height;
+
+    for (int y = 0; y < target_height; ++y)
+    {
+        for (int x = 0; x < target_width; ++x)
+        {
+            int srcX = std::min(static_cast<int>(x * scale_x), image_width - 1);
+            int srcY = std::min(static_cast<int>(y * scale_y), image_height - 1);
+
+            for (int c = 0; c < image_channels; ++c)
+            {
+                resized_image[(y * target_width + x) * image_channels + c] =
+                    image[(srcY * image_width + srcX) * image_channels + c];
+            }
+        }
+    }
+
+    return resized_image;
+}
+
 void resize_image_aspect_ratio(
     const std::vector<std::uint8_t>& image,
     int image_width,
@@ -49,8 +80,8 @@ void resize_image_aspect_ratio(
 
             for (int c = 0; c < image_channels; ++c)
             {
-                resized_image[((y + pad_y) * target_width + (x + pad_x)) * image_channels + c] =
-                    image[(src_y * image_width + src_x) * image_channels + c];
+                auto idx = ((y + pad_y) * target_width + (x + pad_x)) * image_channels + c;
+                resized_image[idx] = image[(src_y * image_width + src_x) * image_channels + c];
             }
         }
     }
@@ -81,6 +112,7 @@ void create_blob(
     const std::vector<T>& scale = {1.0f, 1.0f, 1.0f},
     bool swapRB_channels = false)
 {
+    (void)scale;
     for (int c = 0; c < image_channels; ++c)
     {
         const int channel_offset = (swapRB_channels ? (2 - c) : c);
@@ -120,14 +152,14 @@ std::vector<T> preprocess(
     int image_width,
     int image_height,
     int image_channels,
-    int target_width = 640,
-    int target_height = 640,
+    int target_width,
+    int target_height,
     T normalize_factor = 1.0 / 255.0,
     const std::vector<T>& mean = {0.0f, 0.0f, 0.0f},
     const std::vector<T>& scale = {1.0f, 1.0f, 1.0f},
     bool swapRB_channels = false)
 {
-    const std::vector<std::uint8_t> resized_image = resize_image_aspect_ratio(image, image_width, image_height, image_channels, target_width, target_height);
+    const std::vector<std::uint8_t> resized_image = resize_image(image, image_width, image_height, image_channels, target_width, target_height);
     const std::vector<T> blob = create_blob(resized_image, target_width, target_height, image_channels, normalize_factor, mean, scale, swapRB_channels);
     return blob;
 }

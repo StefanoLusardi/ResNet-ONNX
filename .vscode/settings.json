@@ -73,7 +73,11 @@
         "filesystem": "cpp",
         "csetjmp": "cpp",
         "any": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "span_ext": "cpp",
+        "util": "cpp",
+        "rope": "cpp",
+        "cfenv": "cpp"
     },
     "git.ignoreLimitWarning": true
 }

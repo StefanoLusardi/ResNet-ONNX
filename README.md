@@ -47,6 +47,15 @@ Run this command into the previously created python virtual environment in order
 pip install -r models/requirements.txt
 ```
 
+## Download ResNet and SqueezeNet models
+Run these commands to download a pre-trained ResNet and SqueezeNet models from the ONNX Model Zoo repository.
+
+```bash
+python models/download_models.py
+```
+
+After these commands you should have *resnet18-v2-7.onnx* and *squeezenet1.1-7.onnx* binaries into the root of your repository. In case you want to retrieve other versions of the binaries it is enough to replace the url into the *models/download_models.py* script.
+
 ## Start development environment
 In order to start the development environment it is sufficient to activate the Python Virtual Environment just created the step above.
 
@@ -102,7 +111,44 @@ Once the project has been installed you can run it using the following command.
 install/resnet
 ```
 
-This is an example of the expected output:
+This is an example of the expected output using SqueezeNet:
 ```bash
-# TODO
+Model: squeezenet1.1-7.onnx
+Image: "images/dog.jpeg"
+
+Input: 0
+ - name: data
+ - shape: 1x3x224x224
+ - element type: 1
+
+Output: 0
+ - name: squeezenet0_flatten0_reshape0
+ - shape: 1x1000
+ - element type: 1
+
+Prediction results:
+ID: 232
+Label: Border collie
+Confidence: 0.886919
+```
+
+This is an example of the expected output using ResNet:
+```bash
+Model: resnet18-v2-7.onnx
+Image: "images/dog.jpeg"
+
+Input: 0
+ - name: data
+ - shape: 1x3x224x224
+ - element type: 1
+
+Output: 0
+ - name: resnetv22_dense0_fwd
+ - shape: 1x1000
+ - element type: 1
+
+Prediction results:
+ID: 232
+Label: Border collie
+Confidence: 0.871716
 ```
